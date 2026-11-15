@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مكتبتي | متجر الكتب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --success: #16a34a;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+    body { background-color: var(--bg); color: var(--text-main); padding-bottom: 5rem; }
+
+    /* الهيدر وشريط البحث */
+    header {
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      color: white;
+      padding: 2.5rem 1rem;
+      text-align: center;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    header h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    header p { color: #dbeafe; margin-bottom: 1rem; }
+
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .search-container input {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      border-radius: 50px;
+      border: none;
+      font-size: 1rem;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+      outline: none;
+    }
+
+    /* الحاوية الرئيسية وشبكة الكتب */
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+
+    .books-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .book-card {
+      position: relative;
+      background: var(--card-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .book-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .book-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+      background-color: #e2e8f0;
+    }
+    .book-info {
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      justify-content: space-between;
+    }
+    .book-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .book-author { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; }
+    .book-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid #f1f5f9;
+      gap: 0.5rem;
+    }
+
+    /* السعر الحالي + السعر المشطوب */
+    .price-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+    }
+    .book-price-old {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: line-through;
+      text-decoration-color: var(--danger);
+      text-decoration-thickness: 2px;
+    }
+    .book-price {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .add-cart-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.55rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .add-cart-btn:hover { background-color: var(--primary-hover); }
+    .add-cart-btn:active { transform: scale(0.96); }
+    .add-cart-btn.added { background-color: var(--success); }
+
+    .status-msg { text-align: center; font-size: 1.2rem; color: var(--text-muted); margin-top: 3rem; }
+
+    /* زر السلة العائم */
+    .floating-cart-btn {
+      position: fixed;
+      bottom: 70px;
+      left: 20px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 0.85rem 1.4rem;
+      font-size: 1rem;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      z-index: 900;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .floating-cart-btn:hover {
+      background-color: var(--primary-hover);
+      transform: scale(1.05);
+    }
+    .cart-badge {
+      background-color: var(--danger);
+      color: white;
+      border-radius: 50%;
+      padding: 0.15rem 0.55rem;
+      font-size: 0.85rem;
+    }
+
+    /* نافذة السلة المنبثقة (Modal) */
+    .cart-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .cart-overlay.open { display: flex; }
+
+    .cart-modal {
+      background: white;
+      width: 100%;
+      max-width: 500px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+    }
+    .cart-header {
+      background: #1e3a8a;
+      color: white;
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cart-header h2 { font-size: 1.25rem; }
+    .close-cart {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .cart-items {
+      padding: 1.2rem 1.5rem;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+    .empty-cart-msg {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2rem 0;
+    }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.8rem 0;
+      border-bottom: 1px solid #f1f5f9;
+      gap: 0.8rem;
+    }
+    .cart-item-info { flex-grow: 1; }
+    .cart-item-title { font-weight: 700; font-size: 1rem; }
+    .cart-item-price { color: var(--primary); font-size: 0.9rem; font-weight: 600; }
+
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .qty-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .qty-btn:hover { background: #e2e8f0; }
+    .remove-item-btn {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 1.1rem;
+      margin-right: 0.4rem;
+    }
+
+    .cart-footer {
+      padding: 1.2rem 1.5rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+    }
+    .cart-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .checkout-btn {
+      width: 100%;
+      background-color: var(--success);
+      color: white;
+      border: none;
+      padding: 0.9rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .checkout-btn:hover { background-color: #15803d; }
+    .checkout-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📚 مكتبتي الرقمية</h1>
+    <p>اكتشف أفضل الكتب والروايات بأفضل الأسعار</p>
+    <div style="margin-bottom: 1.5rem; font-size: 0.95rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 0.3rem 1rem; border-radius: 20px;">
+      👁️ عدد الزيارات: <span id="views-count">...</span>
+    </div>
+
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="ابحث عن اسم الكتاب أو المؤلف...">
+    </div>
+  </header>
+
+  <div class="container">
+    <div id="loading" class="status-msg">جاري تحميل الكتب...</div>
+    <div id="books-list" class="books-grid"></div>
+  </div>
+
+  <!-- زر السلة العائم -->
+  <button class="floating-cart-btn" id="open-cart-btn">
+    🛒 السلة <span class="cart-badge" id="cart-count">0</span>
+  </button>
+
+  <!-- نافذة السلة -->
+  <div class="cart-overlay" id="cart-overlay">
+    <div class="cart-modal">
+      <div class="cart-header">
+        <h2>🛒 سلة المشتريات</h2>
+        <button class="close-cart" id="close-cart-btn">&times;</button>
+      </div>
+      <div class="cart-items" id="cart-items-container"></div>
+      <div class="cart-footer">
+        <div class="cart-total-row">
+          <span>المجموع الكلي:</span>
+          <span id="cart-total-price">0 $</span>
+        </div>
+        <button class="checkout-btn" id="whatsapp-checkout-btn">إتمام الطلب عبر واتساب 💬</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC923h6jFhkIglu3k19g4ooKKgxyDEro6o",
+      authDomain: "books-aa9b5.firebaseapp.com",
+      databaseURL: "https://books-aa9b5-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "books-aa9b5",
+      storageBucket: "books-aa9b5.firebasestorage.app",
+      messagingSenderId: "792168538715",
+      appId: "1:792168538715:web:eb30aa39872afa27b5d57e",
+      measurementId: "G-GQGCQH442N"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const container = document.getElementById("books-list");
+    const searchInput = document.getElementById("search-input");
+    const loadingMsg = document.getElementById("loading");
+
+    // عناصر السلة
+    const cartOverlay = document.getElementById("cart-overlay");
+    const openCartBtn = document.getElementById("open-cart-btn");
+    const closeCartBtn = document.getElementById("close-cart-btn");
+    const cartItemsContainer = document.getElementById("cart-items-container");
+    const cartCountBadge = document.getElementById("cart-count");
+    const cartTotalPriceEl = document.getElementById("cart-total-price");
+    const whatsappCheckoutBtn = document.getElementById("whatsapp-checkout-btn");
+
+    let allBooks = [];
+    let cart = JSON.parse(localStorage.getItem("maktabti_cart")) || [];
+
+    const MARKUP_RATE = 1.50;
+    const PHONE_NUMBER = "96170290428";
+    const fmtPrice = (n) => Number(n.toFixed(2)).toString();
+
+    // حفظ السلة وتحديث الواجهة
+    function saveAndUpdateCart() {
+      localStorage.setItem("maktabti_cart", JSON.stringify(cart));
+      renderCart();
+    }
+
+    // إضافة كتاب للسلة
+    function addToCart(book, btnElement) {
+      const existingItem = cart.find(item => item.id === book.id);
+      if (existingItem) {
+        existingItem.qty += 1;
+      } else {
+        cart.push({
+          id: book.id,
+          title: book.title,
+          price: Number(book.price) || 0,
+          qty: 1
+        });
+      }
+      saveAndUpdateCart();
+
+      if (btnElement) {
+        const originalText = btnElement.textContent;
+        btnElement.textContent = "تمت الإضافة ✓";
+        btnElement.classList.add("added");
+        setTimeout(() => {
+          btnElement.textContent = originalText;
+          btnElement.classList.remove("added");
+        }, 900);
+      }
+    }
+
+    // عرض محتويات السلة
+    function renderCart() {
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      cartCountBadge.textContent = totalItems;
+
+      if (cart.length === 0) {
+        cartItemsContainer.innerHTML = '<p class="empty-cart-msg">السلة فارغة حالياً. أضف بعض الكتب!</p>';
+        cartTotalPriceEl.textContent = "0 $";
+        whatsappCheckoutBtn.disabled = true;
+        return;
+      }
+
+      whatsappCheckoutBtn.disabled = false;
+      cartItemsContainer.innerHTML = "";
+      let totalPrice = 0;
+
+      cart.forEach((item, index) => {
+        const itemTotal = item.price * item.qty;
+        totalPrice += itemTotal;
+
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "cart-item";
+        itemDiv.innerHTML = `
+          <div class="cart-item-info">
+            <div class="cart-item-title">${item.title}</div>
+            <div class="cart-item-price">${fmtPrice(item.price)} $ × ${item.qty} = ${fmtPrice(itemTotal)} $</div>
+          </div>
+          <div class="qty-controls">
+            <button class="qty-btn" data-action="dec" data-index="${index}">-</button>
+            <span>${item.qty}</span>
+            <button class="qty-btn" data-action="inc" data-index="${index}">+</button>
+            <button class="remove-item-btn" data-action="rem" data-index="${index}" title="حذف">🗑️</button>
+          </div>
+        `;
+        cartItemsContainer.appendChild(itemDiv);
+      });
+
+      cartTotalPriceEl.textContent = `${fmtPrice(totalPrice)} $`;
+    }
+
+    // التحكم في أزرار (+ / - / حذف) داخل السلة
+    cartItemsContainer.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const index = Number(btn.dataset.index);
+      const action = btn.dataset.action;
+
+      if (action === "inc") {
+        cart[index].qty += 1;
+      } else if (action === "dec") {
+        if (cart[index].qty > 1) {
+          cart[index].qty -= 1;
+        } else {
+          cart.splice(index, 1);
+        }
+      } else if (action === "rem") {
+        cart.splice(index, 1);
+      }
+      saveAndUpdateCart();
+    });
+
+    // إرسال الطلب عبر واتساب
+    whatsappCheckoutBtn.addEventListener("click", () => {
+      if (cart.length === 0) return;
+
+      let message = "مرحباً، أرغب بطلب الكتب التالية من مكتبتي الرقمية:\n\n";
+      let total = 0;
+
+      cart.forEach((item, i) => {
+        const subTotal = item.price * item.qty;
+        total += subTotal;
+        message += `${i + 1}. *${item.title}* (الكمية: ${item.qty}) - ${fmtPrice(subTotal)} $\n`;
+      });
+
+      message += `\n*المجموع الكلي: ${fmtPrice(total)} $*`;
+
+      const whatsappUrl = `https://wa.me/${PHONE_NUMBER}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, "_blank", "noopener");
+    });
+
+    // فتح وإغلاق نافذة السلة
+    openCartBtn.addEventListener("click", () => cartOverlay.classList.add("open"));
+    closeCartBtn.addEventListener("click", () => cartOverlay.classList.remove("open"));
+    cartOverlay.addEventListener("click", (e) => {
+      if (e.target === cartOverlay) cartOverlay.classList.remove("open");
+    });
+
+    // جلب الكتب من Firestore
+    async function fetchBooks() {
+      try {
+        const querySnapshot = await getDocs(collection(db, "Books"));
+        allBooks = [];
+        querySnapshot.forEach((doc) => {
+          allBooks.push({ id: doc.id, ...doc.data() });
+        });
+        loadingMsg.style.display = "none";
+        renderBooks(allBooks);
+      } catch (error) {
+        loadingMsg.textContent = "حدث خطأ أثناء تحميل الكتب. تأكد من إعدادات Firebase.";
+        console.error(error);
+      }
+    }
+
+    // عرض الكتب في الصفحة
+    function renderBooks(books) {
+      container.innerHTML = "";
+      if (books.length === 0) {
+        container.innerHTML = '<p class="status-msg" style="grid-column: 1/-1;">لا توجد كتب مطابقة لبحثك.</p>';
+        return;
+      }
+
+      books.forEach((book) => {
+        const card = document.createElement("div");
+        card.className = "book-card";
+
+        const currentPrice = Number(book.price) || 0;
+        const oldPrice = currentPrice * MARKUP_RATE;
+
+        card.innerHTML = `
+          <img src="${book.coverUrl || 'https://placeholder.com'}" alt="${book.title}">
+          <div class="book-info">
+            <div>
+              <h3 class="book-title">${book.title}</h3>
+              <p class="book-author">${book.author ? 'المؤلف: ' + book.author : ''}</p>
+            </div>
+            <div class="book-footer">
+              <div class="price-wrap">
+                <span class="book-price">${fmtPrice(currentPrice)} $</span>
+                <span class="book-price-old">${fmtPrice(oldPrice)} $</span>
+              </div>
+              <button class="add-cart-btn">أضف للسلة 🛒</button>
+            </div>
+          </div>
+        `;
+
+        const addBtn = card.querySelector(".add-cart-btn");
+        addBtn.addEventListener("click", () => addToCart(book, addBtn));
+
+        container.appendChild(card);
+      });
+    }
+
+    // تفعيل البحث الفوري
+    searchInput.addEventListener("input", (e) => {
+      const searchTerm = e.target.value.toLowerCase().trim();
+      const filtered = allBooks.filter(book =>
+        (book.title && book.title.toLowerCase().includes(searchTerm)) ||
+        (book.author && book.author.toLowerCase().includes(searchTerm))
+      );
+      renderBooks(filtered);
+    });
+
+    // عداد الزيارات
+    async function updatePageViews() {
+      const viewsElement = document.getElementById("views-count");
+      const statsRef = doc(db, "visitors", "stats");
+
+      try {
+        if (!sessionStorage.getItem("visited")) {
+          await updateDoc(statsRef, {
+            count: increment(1)
+          });
+          sessionStorage.setItem("visited", "true");
+        }
+
+        const docSnap = await getDoc(statsRef);
+        if (docSnap.exists()) {
+          viewsElement.textContent = docSnap.data().count;
+        }
+      } catch (error) {
+        console.error("خطأ في تحديث العداد:", error);
+        viewsElement.textContent = "غير متاح";
+      }
+    }
+
+    fetchBooks();
+    updatePageViews();
+    renderCart();
+  </script>
+</body>
+</html>
