@@ -10,8 +10,22 @@
 <meta property="og:image" content="https://github.com/leb-tube/maktabti-market-of-books/blob/f8774010d03ce5d0e088866bb398b567cf73ec05/pisc.jpg?raw=true" />
 <meta property="og:url" content="https://leb-tube.github.io/maktabti-market-of-books/" />
 <meta property="og:type" content="website" />
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://facebook.net');
+fbq('init', 'YOUR_PIXEL_ID'); // ضع رقم البيكسل الخاص بك هنا
+fbq('track', 'PageView');
+</script>
+<!-- End Meta Pixel Code -->
 
-  <style>
+  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=3eF-bCc0vCoxEOGIJsaMB7EzPeYd-zlJ-D00w09Cr93RxaCSjibqJoPDiSa51j7-WjqH4Y6lsuAnwgfCelCjKmFYf7X3oq0BxAeeJH3uSmU" charset="UTF-8"></script><style>
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
@@ -382,6 +396,10 @@
           qty: 1
         });
       }
+if (typeof fbq !== 'undefined') {
+  fbq('track', 'AddToCart', { content_name: book.title, value: book.price, currency: 'USD' });
+}
+
       saveAndUpdateCart();
 
       if (btnElement) {
@@ -471,6 +489,9 @@
 
       message += `\n*المجموع الكلي: ${fmtPrice(total)} $*`;
 
+      if (typeof fbq !== 'undefined') {
+        fbq('track', 'InitiateCheckout', { value: total, currency: 'USD' });
+      }
       const whatsappUrl = `https://wa.me/${PHONE_NUMBER}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, "_blank", "noopener");
     });
@@ -548,27 +569,43 @@
     });
 
     // عداد الزيارات
-    async function updatePageViews() {
-      const viewsElement = document.getElementById("views-count");
-      const statsRef = doc(db, "visitors", "stats");
+   async function updatePageViews() {
+  const viewsElement = document.getElementById("views-count");
+  const statsRef = doc(db, "visitors", "stats");
 
-      try {
-        if (!sessionStorage.getItem("visited")) {
-          await updateDoc(statsRef, {
-            count: increment(1)
-          });
-          sessionStorage.setItem("visited", "true");
-        }
+  try {
+    let updates = {};
+    let shouldUpdate = false;
 
-        const docSnap = await getDoc(statsRef);
-        if (docSnap.exists()) {
-          viewsElement.textContent = docSnap.data().count;
-        }
-      } catch (error) {
-        console.error("خطأ في تحديث العداد:", error);
-        viewsElement.textContent = "غير متاح";
-      }
+    // 1. تتبع الجلسات (الزيارات العامة)
+    if (!sessionStorage.getItem("visited_session")) {
+      updates.count = increment(1);
+      sessionStorage.setItem("visited_session", "true");
+      shouldUpdate = true;
     }
+
+    // 2. تتبع الزوار لأول مرة (Unique Visitors)
+    if (!localStorage.getItem("first_time_visitor")) {
+      updates.unique_visitors = increment(1); // تأكد من إضافة حقل unique_visitors في Firebase بقيمة 0
+      localStorage.setItem("first_time_visitor", "true");
+      localStorage.setItem("first_visit_date", new Date().toISOString()); // حفظ تاريخ أول زيارة
+      shouldUpdate = true;
+    }
+
+    if (shouldUpdate) {
+      await updateDoc(statsRef, updates);
+    }
+
+    const docSnap = await getDoc(statsRef);
+    if (docSnap.exists()) {
+      viewsElement.textContent = docSnap.data().count;
+      // يمكنك أيضاً عرض عدد الزوار الفريدين إذا أردت عبر: docSnap.data().unique_visitors
+    }
+  } catch (error) {
+    console.error("خطأ في تحديث العداد:", error);
+    viewsElement.textContent = "غير متاح";
+  }
+}
 
     fetchBooks();
     updatePageViews();
